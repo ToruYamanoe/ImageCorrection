@@ -100,7 +100,7 @@ def main():
 
     # タイトルと説明
     st.markdown('<div class="title">🔍 屈折異常の為の画像補正アプリ</div>', unsafe_allow_html=True)
-    st.markdown('<div class="description">この技術は屈折異常を持つ人が裸眼で見られるようにニューラルネットワークを用いて画像を補正する技術です。2023年度の山之上暢の修論の成果物です。</div>', unsafe_allow_html=True)
+    st.markdown('<div class="description">この技術はゼルニケ多項式と呼ばれる数理モデルを使って屈折異常の見え方を再現するモデルです。山之上作</div>', unsafe_allow_html=True)
 
     # ユーザー入力フォームの追加
     st.sidebar.header("補正パラメータの入力")
