@@ -1,7 +1,12 @@
 import torch
+import pytorch_lightning as pl
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
+from pytorch_lightning.loggers import TensorBoardLogger, MLFlowLogger
 
 from models.blur import BlurModel
 from models.model import LitImageCorrection
+from datasets import ImageDataModule
 
 from PIL import Image
 import numpy as np
@@ -161,31 +166,34 @@ def main():
                 corrected_tensor = model(input_image_tensor)
             corrected_image = postprocess_tensor(corrected_tensor)
 
-            # 再度ぼかしモデルの適用
-            with torch.no_grad():
-                recorrected_tensor = blur_model(corrected_tensor)
-            recorrected_image = postprocess_tensor(recorrected_tensor)
+            # # 再度ぼかしモデルの適用
+            # with torch.no_grad():
+            #     recorrected_tensor = blur_model(corrected_tensor)
+            # recorrected_image = postprocess_tensor(recorrected_tensor)
 
         # 画像の表示
         st.markdown("### 画像の比較")
         cols = st.columns(3)
         with cols[0]:
+            st.image(input_image,  use_column_width=True)
+            st.markdown('<div class="image-caption">入力画像</div>', unsafe_allow_html=True)
+        with cols[1]:
             st.image(blurred_image,  use_column_width=True)
             st.markdown('<div class="image-caption">ぼかした入力画像</div>', unsafe_allow_html=True)
-        with cols[1]:
+        with cols[2]:
             st.image(corrected_image, use_column_width=True)
             st.markdown('<div class="image-caption">AIで補正された画像</div>', unsafe_allow_html=True)
-        with cols[2]:
-            st.image(recorrected_image, use_column_width=True)
-            st.markdown('<div class="image-caption">AIで補正した画像をぼかした画像</div>', unsafe_allow_html=True)
+        # with cols[2]:
+        #     st.image(recorrected_image, use_column_width=True)
+        #     st.markdown('<div class="image-caption">AIで補正した画像をぼかした画像</div>', unsafe_allow_html=True)
 
         # 説明文や追加情報の表示
         st.markdown("""
         ---
         **補正プロセスについて:**
+        - **入力画像:** 入力画像。                    
         - **ぼかした入力画像:** 入力画像に屈折異常を模擬したぼかしを適用。
         - **補正された画像:** ニューラルネットワークによって補正された画像。
-        - **再補正された画像:** 補正された画像に再度ぼかしを適用し、実際の視界に近い状態をシミュレート。
         """)
     else:
         st.info("画像をアップロードするか、カメラで撮影してください。")
