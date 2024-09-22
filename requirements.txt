@@ -1,0 +1,9 @@
+numpy
+pandas
+tensorboard
+torch==2.0.1
+torchvision==0.15.2
+torchmetrics==1.2.0
+pytorch-lightning==1.9.0
+easyocr
+Pillow
