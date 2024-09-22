@@ -1,5 +1,5 @@
-numpy
-pandas
+numpy==2.1.0
+pandas==2.2.2
 tensorboard
 torch
 torchvision
@@ -10,3 +10,4 @@ easyocr
 Pillow
 streamlit 
 timm==1.0.9
+matplotlob==3.9.2
