@@ -9,3 +9,4 @@ pyocr
 easyocr
 Pillow
 streamlit 
+timm==1.0.9
