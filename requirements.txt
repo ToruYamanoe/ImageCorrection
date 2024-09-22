@@ -7,5 +7,6 @@ torchmetrics
 pytorch-lightning
 pyocr
 easyocr
+timm
 Pillow
 streamlit 
