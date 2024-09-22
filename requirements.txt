@@ -4,6 +4,8 @@ tensorboard
 torch
 torchvision
 torchmetrics
+matplotlib
+PIL
 pytorch-lightning
 pyocr
 easyocr
