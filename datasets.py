@@ -48,11 +48,8 @@ class ImageDataModule(pl.LightningDataModule):
     def add_argparse_args(parent_parser):
         parser = parent_parser.add_argument_group("ImageDataModule")
         parser.add_argument("--batch_size", type=int, default=4)
-
         parser.add_argument("--data_path", type=str, default="./datasets")
         parser.add_argument("--annotation_path", type=str, default="./datasets/train_.txt")
-        # parser.add_argument("--data_path", type=str, default="./datasets_characters")
-        # parser.add_argument("--annotation_path", type=str, default="./datasets_characters/train.txt")
         parser.add_argument("--num_workers", type=int, default=12)
         parser.add_argument("--wide_range", action='store_true')
         return parent_parser
@@ -77,7 +74,6 @@ class ImageDataModule(pl.LightningDataModule):
             self.train_size = int(self.full_size * 0.8)
             self.valid_size = self.full_size - self.train_size
             self.train_data, self.valid_data = random_split(full_data, [self.train_size, self.valid_size], generator=torch.Generator().manual_seed(42))
-            # print(str(len(self.valid_data))+':valid_data_shape')
 
     def train_dataloader(self):
         return DataLoader(self.train_data, batch_size=self.batch_size, num_workers=self.num_workers)

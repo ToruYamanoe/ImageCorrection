@@ -1,4 +1,3 @@
-## taken from https://discuss.pytorch.org/t/implement-total-variation-loss-in-pytorch/55574/2
 import torch
 
 def total_variation_loss(img, weight):

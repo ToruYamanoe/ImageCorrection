@@ -1,26 +1,18 @@
-from email.policy import default
 import torch
 from torch import nn
 from torch.nn import functional as F
 from torchvision.utils import make_grid
 import pytorch_lightning as pl
 import torchmetrics
-import os
-import numpy as np
-import pandas as pd
-import pyocr
 
-from .srcnn import SRCNN
+from models.srcnn import SRCNN
 from .vdsr import VDSR
 from .swinir import SwinIR
 from .unet import UNet
 from .blur import BlurModel
-from .BSRGAN import RRDBNet
 from .RCAN import RCAN 
-from .SRResNet import _NetG
-from .loss import total_variation_loss
-from .new_loss import Adjusted_MSE_Loss,Adjusted_PSNR_Loss,Adjusted_SSIM_Loss,Legibility_Loss
 
+from .loss import total_variation_loss, compute_ocr_similarity
 
 class LitImageCorrection(pl.LightningModule):
     @staticmethod
@@ -40,19 +32,14 @@ class LitImageCorrection(pl.LightningModule):
         parser.add_argument('--num_rg', type=int, default=10)
         parser.add_argument('--num_rcab', type=int, default=20)
         parser.add_argument('--reduction', type=int, default=16)
-
-
-  
         return parent_parser
 
-    # def __init__(self, model, blur, loss:str=None, lr=1e-4):
     def __init__(self, args):
         super().__init__()
 
         self.img_shape = args.img_shape
         self.model_name = args.model
-
-        # self.correction_model = model
+        # 画像補正モデル
         if args.model == "srcnn":
             self.correction_model = SRCNN(img_shape=self.img_shape)
         elif args.model == "vdsr":
@@ -63,22 +50,22 @@ class LitImageCorrection(pl.LightningModule):
             self.correction_model = UNet(n_channels=args.img_shape[0])
         elif args.model == "rcan":
             self.correction_model = RCAN(args=args)
-        elif args.model == "resnet":
-            self.correction_model = _NetG()
         else:
             raise ValueError("invalid model name")
-
-
+        # 視覚再現モデルのパラメータ設定
         self.sphere = args.sphere
         self.cylinder = args.cylinder
         self.axis = args.axis
         self.radius = args.radius
         self.sp = args.sp
-        self.blur_model = BlurModel(S=self.sphere, C=self.cylinder, A=self.axis, R=self.radius, sp=self.sp, img_shape=self.img_shape)
-
+        self.blur_model = BlurModel(S=self.sphere, 
+                                    C=self.cylinder,
+                                    A=self.axis, 
+                                    R=self.radius, 
+                                    sp=self.sp, 
+                                    img_shape=self.img_shape)
         self.lr = args.lr
         self.negate_loss = False
-
         self.loss_name = args.loss
         if self.loss_name == 'mse':
             self.loss_fn = F.mse_loss
@@ -86,7 +73,6 @@ class LitImageCorrection(pl.LightningModule):
             self.loss_fn = F.l1_loss
         elif self.loss_name == 'psnr':
             self.loss_fn = torchmetrics.functional.peak_signal_noise_ratio
-            # self.loss_fn = torchmetrics.PeakSignalNoiseRatio
             self.negate_loss = True
         elif self.loss_name == 'ssim':
             self.loss_fn = torchmetrics.functional.structural_similarity_index_measure
@@ -94,12 +80,7 @@ class LitImageCorrection(pl.LightningModule):
         elif self.loss_name == 'tv':
             self.loss_fn = F.l1_loss
         elif self.loss_name == 'original':
-            self.loss_fn = Adjusted_MSE_Loss
-
-        elif self.loss_name == 'original2':
-            self.loss_fn = Adjusted_SSIM_Loss
-        elif self.loss_name == 'original3':
-            self.loss_fn = Legibility_Loss
+            self.loss_fn = compute_ocr_similarity
         else:
             raise ValueError("invalid loss name")
 
@@ -109,11 +90,8 @@ class LitImageCorrection(pl.LightningModule):
         else:
             self.lower_value = 0
 
-
         self.train_psnr = torchmetrics.PeakSignalNoiseRatio(data_range=1.0)
         self.valid_psnr = torchmetrics.PeakSignalNoiseRatio(data_range=1.0)
-        # self.valid_ssim = torchmetrics.StructuralSimilarityIndexMeasure(data_range=1.0)
-
         self.itr = 0
         self.step = 0
 
@@ -152,7 +130,7 @@ class LitImageCorrection(pl.LightningModule):
             tv_loss = total_variation_loss(corrected_imgs, 10)
             loss = self.loss_fn(blurred_corrected_imgs, imgs)
         elif self.negate_loss:
-            loss = 1-self.loss_fn(blurred_corrected_imgs, imgs)
+            loss = 1 - self.loss_fn(blurred_corrected_imgs, imgs)
         else:
             loss = self.loss_fn(blurred_corrected_imgs, imgs)
 
@@ -168,7 +146,6 @@ class LitImageCorrection(pl.LightningModule):
         self.log('train_psnr', self.train_psnr, on_epoch=True)
 
         self.step += 1
-        # return loss
         return {'loss': loss, 'blr_crr': blurred_corrected_imgs.detach(), 'imgs': imgs.detach(), 'crr': corrected_imgs.detach(), 'blr': blurred_imgs.detach()}
 
     def training_step_end(self, outputs):
@@ -216,14 +193,11 @@ class LitImageCorrection(pl.LightningModule):
 
         self.step += 1
         return {'loss': loss, 'blr_crr': blurred_corrected_imgs.detach(), 'imgs': imgs.detach(), 'crr': corrected_imgs.detach(), 'blr_imgs': blurred_imgs.detach()}
-        # return loss
 
     def validation_step_end(self, outputs):
         pass
 
     def validation_epoch_end(self, outputs):
-        
-        # print('outputs:'+str(outputs))
 
         img = torch.cat([outputs[0]['imgs'][:4], outputs[0]['blr_imgs'][:4], outputs[0]['blr_crr'][:4], outputs[0]['crr'][:4]])
         
@@ -232,20 +206,16 @@ class LitImageCorrection(pl.LightningModule):
         grid = make_grid(img, 4)
         img.detach()
         self.logger.experiment.add_image('img(valid)', grid.detach(), self.itr-1)
-        # self.itr += 1
         
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-
-        # ReduceLROnPlateauスケジューラの設定例
-        # ここでは、'valid_loss'が5エポック改善されない場合、学習率を0.1倍に減衰させる設定です。
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=0.5, patience=3)
 
         return {
             'optimizer': optimizer,
             'lr_scheduler': {
                 'scheduler': scheduler,
-                'monitor': 'valid_loss'  # スケジューラが参照する性能指標
+                'monitor': 'valid_loss'  
             }
         }

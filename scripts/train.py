@@ -3,9 +3,6 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
-# from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
-# from pytorch_lightning.plugins import DDPPlugin
-# from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.loggers import TensorBoardLogger, MLFlowLogger
 from models.blur import BlurModel
 from models.model import LitImageCorrection
@@ -23,7 +20,6 @@ if __name__ == '__main__':
     parser.add_argument("--loggr", type=str, dest="logger",default="tensorboard", choices=["tensorboard", "mlflow"])
     parser.add_argument("--expname", type=str, default="default")
     parser.add_argument("--grad_clip", type=float, default=0.01)
-
     parser = LitImageCorrection.add_model_specific_args(parser)
     parser = ImageDataModule.add_argparse_args(parser)
     parser = pl.Trainer.add_argparse_args(parser)
@@ -48,8 +44,7 @@ if __name__ == '__main__':
         raise ValueError("invalid logger name")
 
     es_cb = EarlyStopping('valid_loss_epoch', patience=25,)
-    # lrmon_cb = LearningRateMonitor('epoch')
-    # gpu_cb = GPUStatsMonitor()
+
     cp_cb =ModelCheckpoint('results/', 'ckpt-{epoch:4d}', monitor='valid_loss_epoch', save_top_k=3)
 
 
