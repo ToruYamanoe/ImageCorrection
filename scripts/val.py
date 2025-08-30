@@ -5,8 +5,8 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.plugins import DDPPlugin
 from pytorch_lightning.loggers import TensorBoardLogger, MLFlowLogger
-from models.blur import BlurModel
-from models.model import LitImageCorrection
+from models.blur.blur import BlurModel
+from lit_models.lit_image_correction import LitImageCorrection
 from datasets import ImageDataModule
 from PIL import Image
 from argparse import ArgumentParser

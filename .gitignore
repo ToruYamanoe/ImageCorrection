@@ -1,0 +1,26 @@
+# Python キャッシュ
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 仮想環境
+.venv/
+.env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# ログ・出力
+checkpoints/
+lightning_logs/
+outputs/
+runs/
+
+# IDE 設定
+.vscode/
+.idea/
+
+# OS 系
+.DS_Store
+Thumbs.db
